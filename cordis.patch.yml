@@ -1,0 +1,12 @@
+# Loader rows for the version manager.
+#
+# `name` is deliberately a path relative to this file. DSH anchors a relative
+# plugin name to the directory of the patch that declares it, so the row keeps
+# loading this package's own entry after the folder is renamed, and a local
+# checkout and an npm install behave the same way.
+#
+# `id` is what the panel uses to look up its own configuration row; it is not
+# the package name, because one package can be composed into several rows.
+- insert:
+    - id: version-manager
+      name: ./lib/index.js
