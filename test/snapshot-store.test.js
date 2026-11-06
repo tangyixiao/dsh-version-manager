@@ -179,15 +179,31 @@ test('deleteSnapshot refuses a traversal and deletes a real file', async () => {
   }
 })
 
-test('recovery is refused for a reason the user can read', () => {
+test('recovery reports what is missing and whether files moved', () => {
   const snapshot = {
     target: {
+      targetId: 'example-pkg',
       installedVersion: '1.2.3',
       source: { kind: 'registry', registryName: 'example-pkg' },
       fingerprint: { digest: 'abc' },
     },
   }
-  assert.deepEqual(recoveryVerdict(snapshot, { digest: 'abc' }), { ok: true, reason: null, detail: null })
+  assert.deepEqual(recoveryVerdict(snapshot, { digest: 'abc' }), {
+    ok: true,
+    reason: null,
+    detail: null,
+    filesMatch: true,
+  })
+
+  // The interesting case: an update replaced the files, which is exactly the
+  // situation a snapshot exists for. Restoring is still allowed, and the
+  // mismatch is carried as evidence rather than as a refusal.
+  assert.deepEqual(recoveryVerdict(snapshot, { digest: 'different' }), {
+    ok: true,
+    reason: null,
+    detail: null,
+    filesMatch: false,
+  })
 
   assert.equal(recoveryVerdict({ target: null }, { digest: 'abc' }).reason, 'snapshot-incomplete')
   assert.equal(
@@ -198,12 +214,15 @@ test('recovery is refused for a reason the user can read', () => {
     recoveryVerdict({ target: { ...snapshot.target, source: { kind: 'git' } } }, { digest: 'abc' }).reason,
     'source-not-replayable',
   )
+  assert.equal(
+    recoveryVerdict({ target: { ...snapshot.target, source: { kind: 'registry', registryName: 'other' } } }, { digest: 'abc' }).reason,
+    'source-substitution',
+  )
   assert.equal(recoveryVerdict(snapshot, null).reason, 'not-installed')
   assert.equal(
-    recoveryVerdict({ target: { ...snapshot.target, fingerprint: null } }, { digest: 'abc' }).reason,
-    'no-fingerprint',
+    recoveryVerdict({ target: { ...snapshot.target, fingerprint: null } }, { digest: 'abc' }).filesMatch,
+    null,
   )
-  assert.equal(recoveryVerdict(snapshot, { digest: 'different' }).reason, 'files-changed')
 })
 
 test('recovery refuses a git-installed package even when the files match', () => {

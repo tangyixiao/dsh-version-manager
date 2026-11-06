@@ -4,6 +4,7 @@ import test from 'node:test'
 import {
   SPEC_KINDS,
   classifySpec,
+  declaredSpecMatches,
   isExactVersion,
   isPrerelease,
   splitRegistrySpec,
@@ -51,7 +52,8 @@ test('classifySpec refuses to guess', () => {
 test('an official bundle is builtin even when it carries a registry spec', () => {
   const parsed = classifySpec('1.2.3', { official: true })
   assert.equal(parsed.kind, 'builtin')
-  assert.equal(parsed.detail, 'ships with DSH')
+  // The kind carries the meaning; prose lives in the panel, not the model.
+  assert.equal(parsed.detail, null)
 })
 
 test('isExactVersion separates a pin from a range', () => {
@@ -85,20 +87,19 @@ test('updateRefusal names the first condition that fails', () => {
   const parsedBase = classifySpec('pkg@1.2.3')
   assert.equal(updateRefusal(base, parsedBase), null)
 
-  assert.match(updateRefusal({ ...base, official: true }, parsedBase), /ships with DSH/)
-  assert.match(
-    updateRefusal({ ...base, availability: 'missing' }, parsedBase),
-    /not installed in this profile/,
-  )
-  assert.match(updateRefusal({ ...base, installed: false }, parsedBase), /not installed/)
-  assert.match(
+  // Refusals are reason codes, not prose: the panel owns the sentence, so the
+  // reason has to survive translation and be assertable.
+  assert.equal(updateRefusal({ ...base, official: true }, parsedBase), 'official-bundle')
+  assert.equal(updateRefusal({ ...base, availability: 'missing' }, parsedBase), 'not-installed-here')
+  assert.equal(updateRefusal({ ...base, installed: false }, parsedBase), 'not-installed')
+  assert.equal(
     updateRefusal({ ...base, readOnlyReason: 'management-required' }, parsedBase),
-    /read-only/,
+    'read-only:management-required',
   )
-  assert.match(updateRefusal({ ...base, source: undefined }, classifySpec(undefined)), /no declared install spec/)
-  assert.match(updateRefusal(base, classifySpec('file:C:/tmp/x.tgz')), /tarball source/)
-  assert.match(updateRefusal(base, classifySpec('pkg@npm:other@1')), /through an alias/)
-  assert.match(updateRefusal({ ...base, version: '' }, parsedBase), /No installed version/)
+  assert.equal(updateRefusal({ ...base, source: undefined }, classifySpec(undefined)), 'no-declared-spec')
+  assert.equal(updateRefusal(base, classifySpec('file:C:/tmp/x.tgz')), 'not-registry:tarball')
+  assert.equal(updateRefusal(base, classifySpec('pkg@npm:other@1')), 'alias-substitution')
+  assert.equal(updateRefusal({ ...base, version: '' }, parsedBase), 'no-installed-version')
 })
 
 test('updateRefusal refuses a spec that would replace the package', () => {
@@ -124,4 +125,17 @@ test('a tarball spec is never offered an update even when its name matches', () 
     version: '1.0.0',
   }
   assert.notEqual(updateRefusal(row, classifySpec(row.source)), null)
+})
+
+test('an ordinary install does not look like declared-spec drift', () => {
+  // The host reports "name@1.7.3"; the profile manifest stores "1.7.3".
+  assert.equal(declaredSpecMatches('dsh-update-checker@1.7.3', '1.7.3', 'dsh-update-checker'), true)
+  assert.equal(declaredSpecMatches('pkg@^0.4.0', '^0.4.0', 'pkg'), true)
+  assert.equal(declaredSpecMatches('^0.4.0', '^0.4.0', 'pkg'), true)
+})
+
+test('a range rewritten in the manifest is reported as drift', () => {
+  assert.equal(declaredSpecMatches('pkg@1.7.3', '^1.7.0', 'pkg'), false)
+  assert.equal(declaredSpecMatches('pkg@1.7.3', null, 'pkg'), false)
+  assert.equal(declaredSpecMatches(null, '1.7.3', 'pkg'), false)
 })
