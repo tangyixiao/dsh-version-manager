@@ -82,6 +82,8 @@ Restore is offered only when it can actually work, and only reports what happene
 
 Restore is **version only**. It does not roll back configuration, the dependency tree or agent presets, and it does not restore files that were edited by hand.
 
+A restore is a write, so it also leaves a way back: before reinstalling, it snapshots the version it is about to replace (marked `before restore to <version>`) and reads that snapshot back. The reply carries it as `undo`. Without it, restoring would be the one action in this plugin with no return path — the version you were on would be gone the moment it ran. A restore that finds the profile already on the recorded version changes nothing and writes no extra snapshot.
+
 ### Skills tab
 
 Skills have no version field, so the panel does not invent one. For each Skill the host reports, it shows the source (project `.dsh/skills`, project `.agents/skills`, custom directories, user `.dsh/skills`, user `.agents/skills`, bundled), the file count, and the Git revision when the directory is inside a checkout, along with whether the Skill's own directory has uncommitted changes.
