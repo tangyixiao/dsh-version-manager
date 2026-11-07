@@ -176,6 +176,38 @@ test('a snapshot of another directory is refused by name, not silently applied',
   assert.deepEqual(await readdir(other), [])
 })
 
+test('a bundled Skill is refused even when its snapshot verifies', async () => {
+  const { home, profileId } = await makeHome()
+  const root = await mkdtemp(join(tmpdir(), 'vm-skill-'))
+  const directory = await makeSkill(root, 'demo', { 'SKILL.md': 'shipped\n' })
+  const base = await takeBase(home, profileId, 'demo', directory)
+
+  // The catalogue says this row ships with DSH. Its directory is writable and
+  // its snapshot is intact, so only the source can stop a restore here.
+  const preview = await previewSkillRestore({
+    dshHome: home,
+    profileId,
+    name: 'demo',
+    directory,
+    source: 'bundled',
+    file: base.file,
+  })
+  assert.equal(preview.ok, false)
+  assert.equal(preview.reason, 'bundled-skill')
+
+  const restored = await restoreSkillSnapshot({
+    dshHome: home,
+    profileId,
+    name: 'demo',
+    directory,
+    source: 'bundled',
+    file: base.file,
+  })
+  assert.equal(restored.ok, false)
+  assert.equal(restored.reason, 'bundled-skill')
+  assert.deepEqual(await readdir(directory), ['SKILL.md'])
+})
+
 test('a snapshot whose copy drifted is refused rather than trusted', async () => {
   const { home, profileId } = await makeHome()
   const root = await mkdtemp(join(tmpdir(), 'vm-skill-'))
