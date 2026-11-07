@@ -162,3 +162,15 @@ test('a range rewritten in the manifest is reported as drift', () => {
   assert.equal(declaredSpecMatches('pkg@1.7.3', null, 'pkg'), false)
   assert.equal(declaredSpecMatches(null, '1.7.3', 'pkg'), false)
 })
+
+test('the two spellings of one local path are not declared-spec drift', () => {
+  // Observed in a real profile: the host reports the Windows path with
+  // backslashes, and pnpm writes the same path with forward slashes. The panel
+  // said "differs" for an install nobody had changed.
+  assert.equal(
+    declaredSpecMatches('file:D:\\tmp\\dsh-temp\\vm-pack\\pkg-0.1.0.tgz', 'file:D:/tmp/dsh-temp/vm-pack/pkg-0.1.0.tgz', 'pkg'),
+    true,
+  )
+  assert.equal(declaredSpecMatches('file:./a/b.tgz', 'file:C:/x/a/b.tgz', 'pkg'), false)
+  assert.equal(declaredSpecMatches('file:./a/b.tgz', 'file:./a/b.tgz', 'pkg'), true)
+})

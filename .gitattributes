@@ -1,0 +1,8 @@
+# Keep the repository bytes stable across the three platforms the CI matrix
+# covers. The plugin ships shell-free JavaScript, so there is nothing to gain
+# from a platform-specific line ending, and a mixed checkout would show up as a
+# diff on files nobody edited.
+* text=auto eol=lf
+
+# Snapshot fixtures are compared byte for byte by the tests.
+*.json text eol=lf
