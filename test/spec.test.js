@@ -49,6 +49,29 @@ test('classifySpec refuses to guess', () => {
   assert.ok(SPEC_KINDS.includes(classifySpec('@scope/name@1').kind))
 })
 
+test('a renamed key does not turn a Git or file dependency into a registry row', () => {
+  // This is the shape the host reports for every dependency whose key differs
+  // from the package name: `dsh-bili-whale@https://github.com/.../tarball/main`.
+  // Reading it as a registry row would both mislabel the source and offer an
+  // update that cannot work.
+  const git = classifySpec('dsh-bili-whale@https://github.com/a/b/tarball/main')
+  assert.equal(git.kind, 'tarball')
+  assert.equal(git.name, 'dsh-bili-whale')
+  assert.equal(git.detail, 'https://github.com/a/b/tarball/main')
+
+  const local = classifySpec('dsh-bili-scroll@file:C:/Users/x/packages/dsh-bili-scroll-2.3.1.tgz')
+  assert.equal(local.kind, 'tarball')
+  assert.equal(local.detail, 'C:/Users/x/packages/dsh-bili-scroll-2.3.1.tgz')
+
+  const linked = classifySpec('pkg@link:../pkg')
+  assert.equal(linked.kind, 'link')
+
+  // A plain range is still a registry row, and so is a range that merely holds a
+  // scope (the `:` inside a name must not trip the inner-spec branch).
+  assert.equal(classifySpec('pkg@^1.2.3').kind, 'registry')
+  assert.equal(classifySpec('@scope/pkg@1.2.3').kind, 'registry')
+})
+
 test('an official bundle is builtin even when it carries a registry spec', () => {
   const parsed = classifySpec('1.2.3', { official: true })
   assert.equal(parsed.kind, 'builtin')
