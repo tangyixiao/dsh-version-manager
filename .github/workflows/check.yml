@@ -25,6 +25,9 @@ jobs:
           node-version: ${{ matrix.node }}
       # The plugin ships plain JavaScript and has no dependencies, so there is
       # nothing to install: the suite runs on the Node standard library alone.
-      - run: node --test --test-concurrency=1 test/
+      # Node 22 does not accept a directory argument here, it resolves "test/"
+      # as a module and fails with MODULE_NOT_FOUND, so discovery is left to the
+      # runner: with no path it searches the project for test files.
+      - run: node --test --test-concurrency=1
       - name: Pack the plugin and inspect what npm would publish
         run: npm pack --dry-run
