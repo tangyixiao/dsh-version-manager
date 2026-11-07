@@ -26,6 +26,8 @@ dsh plugin --profile <your-profile> add /absolute/path/dsh-version-manager-0.1.0
 
 Then restart the host and open the panel from the left sidebar.
 
+One prerequisite is worth knowing before you install into a *brand new* profile. `dsh plugin --profile <new> add …` creates a profile whose bundle list is just `@deepseek-ai/dsh-base`. A panel plugin needs `webServer`, which arrives with `@deepseek-ai/dsh-web-app`; without it this plugin sits in `pending (waiting for service: webServer)` and never draws anything. Desktop profiles already carry that bundle, so installing into the profile you already use is unaffected. Into an empty profile, add the web app bundle too.
+
 Verify the bundle was installed from the tarball rather than from a stray checkout:
 
 ```bash
@@ -103,6 +105,34 @@ A restore that proceeds keeps a way back: it snapshots the current directory fir
 The `.system` directory and anything outside the host's Skill catalog are never scanned or written. A snapshot or restore request can only name a Skill the host lists — the routes never accept a path, so they cannot be used as a directory copier.
 
 > One consequence worth stating plainly: the host's filesystem provider is disabled in a stock profile, so in a default profile the Skills tab lists only bundled Skills unless that provider is enabled. The plugin reports `available: false` with the host's own reason rather than showing an empty list.
+
+## Verification
+
+Three kinds of evidence, kept apart on purpose.
+
+**Unit and integration tests.** `npm test` runs 83 tests with no network and no host: spec classification, semver comparison, lockfile parsing, inventory merging, snapshot store, operation journal, Skill restore (including a swap that fails halfway), and the HTTP routes wired against a fake host.
+
+**CI.** `.github/workflows/check.yml` runs that suite on Ubuntu, Windows and macOS against Node 22 and 24 — six jobs, no install step, because the package has no dependencies. It also runs `npm pack --dry-run` so a broken `files` list fails the build.
+
+**A real host.** The flows below were run against DeepSeek Harness `0.2.2-rc.1` (Electron 44.7.0, Node 24.21.0) on Windows 11, installed from the packed tarball `dsh-version-manager-0.1.0.tgz` into a throwaway `DSH_HOME`. The point of a separate home is that a mistake here cannot touch the profile you work in.
+
+What was exercised, and what it produced:
+
+| step | observed |
+| --- | --- |
+| fresh profile created by `dsh plugin --profile final add <tarball>` | `dsh: initialized profile final`, `+ dsh-version-manager 0.1.0`, 26 rows rendered |
+| `GET /overview` | `profile=final`, `host=0.2.2-rc.1`, source `@deepseek-ai/dsh-app-boot/package.json` |
+| `POST /snapshot` without `confirm` | `400 {"error":"confirm required"}` |
+| `POST /snapshot` with `confirm` | `200`, snapshot written with `seq: 1` |
+| `POST /update` on a registry plugin | `200`, host reported `1.7.2 → 1.7.3`, snapshot taken first, operation journal reached `succeeded` |
+| `POST /restore` with that snapshot | `200`, `restoredVersion: 1.7.2`, `evidence.filesMatch: false` (the files *had* changed, which is the expected evidence) |
+| `POST /skills/snapshot` | `200`, copy re-read and verified, `fileCount: 2` |
+| Skill restore on a bundled Skill | `409 bundled-skill`, directory unchanged |
+| the Desktop shell | sidebar entry, panel, both tabs, confirmation bar, operation list and snapshot list all rendered and worked; a snapshot taken by clicking in the UI landed on disk |
+
+Two defects found this way and fixed rather than documented away: a nested-but-successful host reply was being classified as a failure, and a bundled Skill could be offered a restore the plugin would refuse everywhere else. A third was cosmetic but worse than cosmetic — one local path was compared in two spellings and reported as a change that never happened.
+
+Not verified: another DSH version, a Linux or macOS Desktop, a non-bundled Skill provider, and a Skill restore of a Git-managed directory (deliberately refused, see above).
 
 ## Honest limits
 
