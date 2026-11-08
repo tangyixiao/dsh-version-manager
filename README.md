@@ -88,7 +88,7 @@ A restore is a write, so it also leaves a way back: before reinstalling, it snap
 
 Skills have no version field, so the panel does not invent one. For each Skill the host reports, it shows the source (project `.dsh/skills`, project `.agents/skills`, custom directories, user `.dsh/skills`, user `.agents/skills`, bundled), the file count, and the Git revision when the directory is inside a checkout, along with whether the Skill's own directory has uncommitted changes.
 
-**Take a snapshot** copies the Skill directory into the snapshot store, re-reads the copy, and refuses to keep it when the copy does not match the digest of what was read. Skill writes (update, restore) are not in this release: a Skill has no baseline to compare against, and a wrong write would be unrecoverable.
+**Take a snapshot** copies the Skill directory into the snapshot store, re-reads the copy, and refuses to keep it when the copy does not match the digest of what was read. The snapshot records bytes plus the Git revision the directory happened to be at; it never presents either as a version number.
 
 **Restore** puts one Skill directory back to the exact bytes a snapshot recorded. Open a row's snapshot list, preview, and confirm. The preview runs before the confirmation bar, so a refusal is something you read while choosing rather than after committing. A restore is refused when:
 
@@ -108,11 +108,38 @@ The `.system` directory and anything outside the host's Skill catalog are never 
 
 > One consequence worth stating plainly: the host's filesystem provider is disabled in a stock profile, so in a default profile the Skills tab lists only bundled Skills unless that provider is enabled. The plugin reports `available: false` with the host's own reason rather than showing an empty list.
 
+### Git-managed Skills
+
+A Skill has no version field, so the only honest way to say "which content is this" is the commit it came from. Register a Skill once — name, repository, the exact subpath inside it, and a branch or tag — and the panel can then show what an update would change, move the directory forward, and move it back to any commit already fetched.
+
+The plugin never runs a Git command inside your checkout. It keeps its own bare repository at `<DSH_HOME>/version-manager/git-cache/<hash>.git` and does every read there: `fetch` into that cache, `ls-tree` and `cat-file blob` to write files, `diff --name-status` to say what would change. Your branches, index and working tree are not touched, so there is nothing for this feature to corrupt outside the one Skill directory it was pointed at.
+
+What an update does, in order: verify the directory still matches the digest recorded at registration, fetch the ref into the cache, diff the trees, snapshot the current directory (reason `before git update to <sha>`), export the tree into a sibling staging directory, re-verify it, swap it in with two renames, then record the new revision and digest. Moving back to an earlier commit is the same path with the revision named explicitly.
+
+It refuses, by name, when:
+
+| reason | meaning |
+| --- | --- |
+| `local-modifications` | files in the directory no longer match the recorded baseline; the update would silently discard someone's work |
+| `baseline-unknown` | the directory holds files that are not that commit's tree, so no honest baseline can be recorded at registration time |
+| `inside-git-checkout` | the target directory is inside a working tree |
+| `bundled-skill` | the Skill ships with DSH |
+| `system-skill` | the path contains a `.system` segment |
+| `bad-subpath` | the subpath is absolute, contains `..`, or points into `.git` |
+| `unsupported-remote` | the address is not `https`, `ssh`, `git@`, `file://` or an absolute path |
+| `already-registered` | the Skill is already registered to a different source; unregister first, so history cannot become fictional |
+| `revision-not-in-cache` | the requested commit was never fetched; the plugin does not guess or rewrite history |
+| `unsupported-entry` | the commit contains a symlink or a submodule. Writing a symlink as a regular file would change what the Skill means |
+
+Registration itself writes one line to a registry file and nothing else — a claim about intent should not be able to destroy content. The first update is what fills the directory, which is also why a freshly registered empty directory reports `populated: false` instead of claiming it is already at that revision.
+
+Sources that are **not** supported, listed rather than implied: any directory this plugin did not create or verify (registration requires an empty directory or an exact match to the named commit), a subpath containing symlinks or submodules, a repository reachable only over a transport Git itself cannot read here, and a Skill whose directory lives inside another Git checkout.
+
 ## Verification
 
 Three kinds of evidence, kept apart on purpose.
 
-**Unit and integration tests.** `npm test` runs 83 tests with no network and no host: spec classification, semver comparison, lockfile parsing, inventory merging, snapshot store, operation journal, Skill restore (including a swap that fails halfway), and the HTTP routes wired against a fake host.
+**Unit and integration tests.** `npm test` runs 97 tests with no network and no host: spec classification, semver comparison, lockfile parsing, inventory merging, snapshot store, operation journal, Skill restore (including a swap that fails halfway), the Git-managed Skill flow against real throwaway repositories, and the HTTP routes wired against a fake host.
 
 **CI.** `.github/workflows/check.yml` runs that suite on Ubuntu, Windows and macOS against Node 22 and 24 — six jobs, no install step, because the package has no dependencies. It also runs `npm pack --dry-run` so a broken `files` list fails the build.
 
@@ -141,8 +168,9 @@ Not verified: another DSH version, a Linux or macOS Desktop, a non-bundled Skill
 - **A snapshot is not a profile backup.** A version restore reinstalls one package. It does not revert `package.json` ranges, the lockfile, config overlays, or the dependency tree.
 - **Registry host is often unknown.** pnpm's lockfile records a tarball URL only for some packages; when it does not, the panel says the registry is not stored rather than assuming npmjs.
 - **Compatibility uses the package's own declaration.** If a package declares nothing, the panel says so instead of guessing.
-- **Skill writes are one direction only.** A restore replaces a directory with a recorded snapshot. There is no "update this Skill from a Git source" flow in this release: that needs a baseline the user explicitly designates, and this plugin will not guess one.
+- **Skill writes are one direction per flow.** A snapshot restore replaces a directory with recorded bytes; a Git update moves a registered directory between commits. Neither merges: what is on disk and not in the target tree is removed. A directory the plugin did not register has no baseline, and the plugin will not guess one.
 - **A Skill snapshot is a copy, not a version.** Skills have no version field, so the store keeps bytes and the Git revision separately; it never presents them as a version number.
+- **Git-managed Skills need Git on `PATH`.** The flow shells out to `git` for `fetch`, `ls-tree` and `cat-file`. When Git is missing the panel says `git-not-found` instead of falling back to a filesystem copy.
 - **`skippedBundles` is not visible at runtime.** DSH prints bundles it skipped to stderr at startup; a running plugin cannot read that list, so a bundle that never loaded is reported from the loader's own phases, with `unknown` where the host is silent.
 - **Tested on Windows only** as a real host (0.2.2-rc.1, Electron 44.7.0, Node 24.21.0). Linux and macOS are covered by the unit tests, not by a running Desktop.
 
@@ -152,7 +180,8 @@ Not verified: another DSH version, a Linux or macOS Desktop, a non-bundled Skill
 - Every write route requires `{"confirm": true}` in the body, so a stray GET or a cross-site form post cannot change anything.
 - The host, not this plugin, writes the profile. Updates go through the host's plugin manager, which owns the manifest lock and its own log.
 - Skill snapshots copy only directories the host catalog lists. No request-supplied path is read, and snapshot file names are rejected when they contain `/`, `\` or `..`.
-- A Skill restore is the only path that writes into a user directory. It refuses Git checkouts and `.system`, verifies both the stored copy and the staged replacement against one digest, and snapshots what it replaces first.
+- A Skill restore is the only path that writes into a user directory without an explicit commit. It refuses Git checkouts and `.system`, verifies both the stored copy and the staged replacement against one digest, and snapshots what it replaces first.
+- A Git update writes the tree of a commit you named, into a directory you registered. The fetch goes to a bare cache the plugin owns (`<DSH_HOME>/version-manager/git-cache/`); no command runs inside your checkout, and the skills' own Git state is read, never changed. A directory whose files drifted from the recorded baseline is refused rather than overwritten.
 - Nothing is uploaded. The panel reads only what the host and the local filesystem expose.
 
 ## Routes
@@ -163,13 +192,19 @@ All under `/dsh-version-manager`, same-origin, `Cache-Control: no-store`.
 | --- | --- | --- | --- |
 | GET | `/overview` | — | profile, host version, plugin rows, recent operations |
 | GET | `/versions?target=<name>` | — | newer versions, split into stable and prerelease |
-| GET | `/skills` | — | Skill inventory with snapshot counts and a `restoreRefusal` per row |
+| GET | `/skills` | — | Skill inventory with snapshot counts, a `restoreRefusal` per row, and the Git registry |
 | GET | `/skills/restore-preview?name=&file=` | — | what a restore would do, and every reason it would be refused |
+| GET | `/skills/git` | — | registered Git sources, their pinned revision, and local drift |
 | POST | `/snapshot` | `{targetId, confirm}` | snapshot one plugin |
 | POST | `/update` | `{targetId, toVersion, allowPrerelease?, confirm}` | snapshot, then ask the host to update |
 | POST | `/restore` | `{targetId, snapshotId, confirm}` | reinstall the version a snapshot recorded |
 | POST | `/skills/snapshot` | `{name, confirm}` | snapshot one Skill |
 | POST | `/skills/restore` | `{name, file, confirm}` | replace one Skill directory with the recorded bytes |
+| POST | `/skills/git/register` | `{name, remote, subpath?, ref?, create?, confirm}` | record where a Skill comes from and the commit it currently matches |
+| POST | `/skills/git/remove` | `{name, confirm}` | forget the registration, leaving the directory alone |
+| POST | `/skills/git/preview` | `{name, ref?, confirm}` | fetch into the plugin's cache and report the diff and every refusal |
+| POST | `/skills/git/update` | `{name, ref?, confirm}` | snapshot, then write the tree of the fetched commit |
+| POST | `/skills/git/restore` | `{name, revision, confirm}` | snapshot, then write the tree of a commit already in the cache |
 
 Error bodies carry a stable `error` code and, when useful, a `message`. The update and restore flows also return `operationId`, and the operation journal under `<DSH_HOME>/version-manager/operations/<profile>/` records each transition: `planned`, `snapshot_verified`, `applying`, `verifying`, then `succeeded`, `failed`, `cancelled` or `recovery_required`.
 
