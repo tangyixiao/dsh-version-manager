@@ -133,13 +133,15 @@ It refuses, by name, when:
 
 Registration itself writes one line to a registry file and nothing else — a claim about intent should not be able to destroy content. The first update is what fills the directory, which is also why a freshly registered empty directory reports `populated: false` instead of claiming it is already at that revision.
 
+Moving back is allowed in one case where moving forward is not: if you edited the files by hand, an update is refused (`local-modifications`) but a restore still runs, because a restore snapshots the current directory before it writes. Refusing both would leave no way back from the exact situation this feature exists to fix. A restore does still refuse a directory this plugin never populated that now holds files — those belong to something else, and replacing them would delete files the plugin has no record of. The panel reports the two refusals separately (`refusal` and `restoreRefusal`).
+
 Sources that are **not** supported, listed rather than implied: any directory this plugin did not create or verify (registration requires an empty directory or an exact match to the named commit), a subpath containing symlinks or submodules, a repository reachable only over a transport Git itself cannot read here, and a Skill whose directory lives inside another Git checkout.
 
 ## Verification
 
 Three kinds of evidence, kept apart on purpose.
 
-**Unit and integration tests.** `npm test` runs 97 tests with no network and no host: spec classification, semver comparison, lockfile parsing, inventory merging, snapshot store, operation journal, Skill restore (including a swap that fails halfway), the Git-managed Skill flow against real throwaway repositories, and the HTTP routes wired against a fake host.
+**Unit and integration tests.** `npm test` runs 104 tests with no network and no host: spec classification, semver comparison, lockfile parsing, inventory merging, snapshot store, operation journal, Skill restore (including a swap that fails halfway), the Git-managed Skill flow against real throwaway repositories, and the HTTP routes wired against a fake host.
 
 **CI.** `.github/workflows/check.yml` runs that suite on Ubuntu, Windows and macOS against Node 22 and 24 — six jobs, no install step, because the package has no dependencies. It also runs `npm pack --dry-run` so a broken `files` list fails the build.
 
@@ -157,11 +159,12 @@ What was exercised, and what it produced:
 | `POST /restore` with that snapshot | `200`, `restoredVersion: 1.7.2`, `evidence.filesMatch: false` (the files *had* changed, which is the expected evidence) |
 | `POST /skills/snapshot` | `200`, copy re-read and verified, `fileCount: 2` |
 | Skill restore on a bundled Skill | `409 bundled-skill`, directory unchanged |
+| Git-managed Skill: register, first apply, update A→B, restore A, hand-edit then restore | registered against an empty directory (`populated: false`), first update filled it, an update moved `8569b20 → c3d0909` with `M SKILL.md` / `A extra.md`, a restore put `8569b20` back and removed `extra.md`, a hand-edited file made the update refuse `local-modifications` while the restore still ran and left an undo snapshot holding the edited bytes |
 | the Desktop shell | sidebar entry, panel, both tabs, confirmation bar, operation list and snapshot list all rendered and worked; a snapshot taken by clicking in the UI landed on disk |
 
-Two defects found this way and fixed rather than documented away: a nested-but-successful host reply was being classified as a failure, and a bundled Skill could be offered a restore the plugin would refuse everywhere else. A third was cosmetic but worse than cosmetic — one local path was compared in two spellings and reported as a change that never happened.
+Two defects found this way and fixed rather than documented away: a nested-but-successful host reply was being classified as a failure, and a bundled Skill could be offered a restore the plugin would refuse everywhere else. A third was cosmetic but worse than cosmetic — one local path was compared in two spellings and reported as a change that never happened. A fourth came out of the Git flow: the panel reported a freshly registered, still-empty directory as "modified, update will be refused" because the empty directory's digest never equals the commit's, while the update path allowed it — the row now reads the same refusal function the update path uses, so the two cannot drift apart again.
 
-Not verified: another DSH version, a Linux or macOS Desktop, a non-bundled Skill provider, and a Skill restore of a Git-managed directory (deliberately refused, see above).
+Not verified: another DSH version, a Linux or macOS Desktop, and a non-bundled Skill provider.
 
 ## Honest limits
 
@@ -181,7 +184,7 @@ Not verified: another DSH version, a Linux or macOS Desktop, a non-bundled Skill
 - The host, not this plugin, writes the profile. Updates go through the host's plugin manager, which owns the manifest lock and its own log.
 - Skill snapshots copy only directories the host catalog lists. No request-supplied path is read, and snapshot file names are rejected when they contain `/`, `\` or `..`.
 - A Skill restore is the only path that writes into a user directory without an explicit commit. It refuses Git checkouts and `.system`, verifies both the stored copy and the staged replacement against one digest, and snapshots what it replaces first.
-- A Git update writes the tree of a commit you named, into a directory you registered. The fetch goes to a bare cache the plugin owns (`<DSH_HOME>/version-manager/git-cache/`); no command runs inside your checkout, and the skills' own Git state is read, never changed. A directory whose files drifted from the recorded baseline is refused rather than overwritten.
+- A Git update writes the tree of a commit you named, into a directory you registered. The fetch goes to a bare cache the plugin owns (`<DSH_HOME>/version-manager/git-cache/`); no command runs inside your checkout, and the skills' own Git state is read, never changed. A directory whose files drifted from the recorded baseline is refused rather than overwritten — except by a restore, which is the documented way back and snapshots what it replaces first.
 - Nothing is uploaded. The panel reads only what the host and the local filesystem expose.
 
 ## Routes
@@ -194,7 +197,7 @@ All under `/dsh-version-manager`, same-origin, `Cache-Control: no-store`.
 | GET | `/versions?target=<name>` | — | newer versions, split into stable and prerelease |
 | GET | `/skills` | — | Skill inventory with snapshot counts, a `restoreRefusal` per row, and the Git registry |
 | GET | `/skills/restore-preview?name=&file=` | — | what a restore would do, and every reason it would be refused |
-| GET | `/skills/git` | — | registered Git sources, their pinned revision, and local drift |
+| GET | `/skills/git` | — | registered Git sources, their pinned revision, local drift, and separate `refusal` / `restoreRefusal` |
 | POST | `/snapshot` | `{targetId, confirm}` | snapshot one plugin |
 | POST | `/update` | `{targetId, toVersion, allowPrerelease?, confirm}` | snapshot, then ask the host to update |
 | POST | `/restore` | `{targetId, snapshotId, confirm}` | reinstall the version a snapshot recorded |

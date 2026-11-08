@@ -10,6 +10,7 @@ import { promisify } from 'node:util'
 import {
   applyGitUpdate,
   describeRegistry,
+  gitRestoreRefusal,
   gitUpdateRefusal,
   isFetchableRemote,
   normaliseSubpath,
@@ -102,6 +103,15 @@ gitTest('a Skill registered against an empty directory is filled on first apply'
     assert.equal(ctx.registered.entry.revision, ctx.a)
     assert.equal(ctx.registered.entry.populated, false)
     assert.equal(ctx.registered.entry.files, 1)
+
+    // An empty directory has a digest, and that digest never equals the digest
+    // of the commit tree, so a digest comparison alone calls it modified. The
+    // row must follow the same rule an update follows, or the panel warns about
+    // a refusal that will not happen.
+    const [unwritten] = await describeRegistry(await readRegistry(ctx.home, 'p1'))
+    assert.equal(unwritten.populated, false)
+    assert.equal(unwritten.localModifications, false)
+    assert.equal(unwritten.refusal, null)
 
     const applied = await applyGitUpdate({ dshHome: ctx.home, profileId: 'p1', name: 'demo' })
     assert.equal(applied.ok, true, applied.reason)
@@ -336,4 +346,23 @@ test('a refusal names the first reason that applies', () => {
   assert.equal(gitUpdateRefusal(base, { exists: true, digest: 'b'.repeat(64) }), 'local-modifications')
   assert.equal(gitUpdateRefusal(base, { exists: true, digest: 'a'.repeat(64) }), null)
   assert.equal(gitUpdateRefusal(base, { exists: false, digest: null }), null)
+})
+
+test('a restore stays possible where an update is refused, but not everywhere', () => {
+  const base = { directory: join(tmpdir(), 'skills', 'demo'), remote: 'https://example.invalid/r.git', subpath: 'skills/demo', baselineDigest: 'a'.repeat(64), populated: true }
+  // Hand-edited: the way forward is closed, the way back is not.
+  const edited = { exists: true, digest: 'b'.repeat(64), files: 1, inCheckout: false }
+  assert.equal(gitUpdateRefusal(base, edited), 'local-modifications')
+  assert.equal(gitRestoreRefusal(base, edited), null)
+  // The boundaries a restore must still respect are the same ones.
+  assert.equal(gitRestoreRefusal(base, { exists: true, digest: 'b'.repeat(64), files: 1, inCheckout: true }), 'inside-git-checkout')
+  assert.equal(gitRestoreRefusal({ ...base, remote: 'nonsense' }, edited), 'unsupported-remote')
+  assert.equal(gitRestoreRefusal({ ...base, subpath: null }, edited), 'bad-subpath')
+  assert.equal(gitRestoreRefusal({ ...base, directory: '' }, edited), 'no-directory')
+  // A directory this plugin never wrote and that holds files belongs to
+  // something else; restoring over it would delete files it has no record of.
+  assert.equal(gitRestoreRefusal({ ...base, populated: false }, { exists: true, digest: 'b'.repeat(64), files: 2 }), 'local-modifications')
+  assert.equal(gitRestoreRefusal({ ...base, populated: false }, { exists: true, digest: 'e'.repeat(64), files: 0 }), null)
+  // Missing directory: a restore may recreate it.
+  assert.equal(gitRestoreRefusal(base, { exists: false, digest: null, files: null, inCheckout: false }), null)
 })
