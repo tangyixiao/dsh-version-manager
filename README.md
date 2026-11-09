@@ -70,7 +70,7 @@ The summary line above the table counts entries the host would let this plugin w
 
 A snapshot records the profile identity, package name, original declared spec, installed version, source (including the registry host when the lockfile records one), enabled state, compatibility verdict, and a SHA-256 fingerprint of the package directory. It does **not** record tokens, credentials, environment variables or file contents.
 
-Snapshots live under `<DSH_HOME>/version-manager/snapshots/<profile>/<package>/`, are written through a temporary file and renamed into place, never overwrite an existing snapshot, and are retained at 20 per target (the oldest beyond that are listed, not silently deleted).
+Snapshots live under `<DSH_HOME>/version-manager/snapshots/<profile>/<package>/`, are written through a temporary file and renamed into place, never overwrite an existing snapshot, and are kept at 20 per target. Anything older than that stays restorable and is labelled as past retention rather than deleted for you; see [Retention](#retention-is-visible-and-nothing-is-deleted-for-you).
 
 Restore is offered only when it can actually work, and only reports what happened:
 
@@ -143,7 +143,7 @@ Sources that are **not** supported, listed rather than implied: any directory th
 
 Three kinds of evidence, kept apart on purpose.
 
-**Unit and integration tests.** `npm test` runs 104 tests with no network and no host: spec classification, semver comparison, lockfile parsing, inventory merging, snapshot store, operation journal, Skill restore (including a swap that fails halfway), the Git-managed Skill flow against real throwaway repositories, and the HTTP routes wired against a fake host.
+**Unit and integration tests.** `npm test` runs 109 tests with no network and no host: spec classification, semver comparison, lockfile parsing, inventory merging, snapshot store, snapshot retention and pruning, operation journal, Skill restore (including a swap that fails halfway), the Git-managed Skill flow against real throwaway repositories, and the HTTP routes wired against a fake host.
 
 **CI.** `.github/workflows/check.yml` runs that suite on Ubuntu, Windows and macOS against Node 22 and 24 — six jobs, no install step, because the package has no dependencies. It also runs `npm pack --dry-run` so a broken `files` list fails the build.
 
@@ -201,6 +201,7 @@ All under `/dsh-version-manager`, same-origin, `Cache-Control: no-store`.
 | GET | `/skills/restore-preview?name=&file=` | — | what a restore would do, and every reason it would be refused |
 | GET | `/skills/git` | — | registered Git sources, their pinned revision, local drift, and separate `refusal` / `restoreRefusal` |
 | POST | `/snapshot` | `{targetId, confirm}` | snapshot one plugin |
+| POST | `/snapshots/prune` | `{targetId, confirm}` | delete the snapshots past the per-target limit, listing every file removed |
 | POST | `/update` | `{targetId, toVersion, allowPrerelease?, confirm}` | snapshot, then ask the host to update |
 | POST | `/restore` | `{targetId, snapshotId, confirm}` | reinstall the version a snapshot recorded |
 | POST | `/skills/snapshot` | `{name, confirm}` | snapshot one Skill |
@@ -212,6 +213,107 @@ All under `/dsh-version-manager`, same-origin, `Cache-Control: no-store`.
 | POST | `/skills/git/restore` | `{name, revision, confirm}` | snapshot, then write the tree of a commit already in the cache |
 
 Error bodies carry a stable `error` code and, when useful, a `message`. The update and restore flows also return `operationId`, and the operation journal under `<DSH_HOME>/version-manager/operations/<profile>/` records each transition: `planned`, `snapshot_verified`, `applying`, `verifying`, then `succeeded`, `failed`, `cancelled` or `recovery_required`.
+
+## Performance and cache policy
+
+Measured in a real Windows Desktop host (0.2.2-rc.1, Electron 44.7.0, Node 24.21.0) against a
+profile with 26 plugin rows, 11 stored snapshots and 8 visible Skills. Timings are
+`fetch()` round trips taken inside the panel's page, so they include the host's own
+serialization:
+
+| call | cold | warm |
+| --- | --- | --- |
+| `GET /overview` | 161 ms | 134 ms |
+| `GET /skills` | 426 ms | 313 ms |
+
+There is nothing slower here by design. What costs time, and why:
+
+- **`/overview` reads the filesystem per row.** For each package it reads the installed
+  manifest, the profile manifest, the lockfile entry and the stored snapshot list. That is
+  why it is one call and not one call per row: the panel refreshes everything at once.
+- **`/skills` is the slower one** because the host's skill catalog is scanned by the host
+  itself; the plugin only aggregates what the host already enumerated.
+- **No caching of version lists anywhere.** `/versions?target=…` asks the registry through
+  the host every time it is pressed. A cached answer would be indistinguishable from a
+  fresh one in the panel, which is exactly the failure this plugin exists to avoid.
+- **The only on-disk caches** are the snapshot store
+  (`<DSH_HOME>/version-manager/snapshots/<profile>/<pkg>/`) and, for Git-managed Skills, a
+  bare repository per remote (`<DSH_HOME>/version-manager/git-cache/<hash>.git`). Both are
+  yours to delete when the plugin is not running; the plugin recreates what it needs.
+
+### Retention is visible, and nothing is deleted for you
+
+Every target keeps its snapshots. The panel states the numbers: how many exist, how many
+are past the 20-per-target limit, and which ones. Rows past the limit are labelled
+**超出保留数 / past retention** in the list.
+
+They are **not** removed automatically. A version manager that silently deletes the way
+back is worse than one that keeps too much, so removal is one explicit action with its own
+confirmation, which states how many files it will delete before it does it:
+
+```
+POST /snapshots/prune  { targetId, confirm: true }
+```
+
+The response lists every removed file, every file it failed to remove, and how many remain.
+A snapshot still in the list can still be restored.
+
+## Troubleshooting
+
+| symptom | what it means | what to do |
+| --- | --- | --- |
+| Sidebar has no **Version Manager** entry | the plugin did not activate | `dsh --profile <p> --no-open` prints the entries that did not activate; a fresh profile usually reports `pending (waiting for service: webServer)` — see [Install](#install) |
+| Panel opens but every row says `unknown` compatibility | the installed manifest could not be read for those packages | the row's `加载状态` detail names the reason; `unknown` is deliberately not rendered as a pass |
+| `registry 未知` on a package | pnpm's lockfile stored no tarball URL for it | nothing is broken; a version check still works, but this plugin will not guess which registry host to record |
+| A row is read-only and offers no update | the host itself keeps that entry read-only (official bundles, or an `install` source the plugin must not rewrite) | the row shows the host's own reason; updates to those entries are not attempted |
+| Update answers `not-updatable` | the row was writable at render time but not when the request arrived | press refresh; if it stays read-only, the host changed its mind and the panel is telling you |
+| Update answers `already-installed` | the host reached the target without changing anything | this is reported as a failure on purpose: nothing was applied, so nothing is claimed as applied |
+| Restore answers `409` | a precondition failed | the body's `error` is a stable code (`source-not-replayable`, `not-installed`, `snapshot-incomplete`, …) and `evidence` shows what was compared |
+| `evidence.filesMatch: false` after a restore | the files on disk differ from the snapshot's recorded fingerprint | expected when the package's files change between versions; it is evidence, not a veto |
+| Skill tab says the skills service is unavailable | the host exposes no skill provider in that process | the panel prints the host's own reason; the Git-managed section still works, because it does not need the catalog |
+| Only bundled Skills are listed | `skill-filesystem` is `disabled: true` in a stock profile | enable that provider in the profile to see your own Skill directories |
+| `git-not-found` | Git is not on `PATH` for the host process | install Git; the Git Skill flow refuses rather than copying files without it |
+| `local-modifications` | files changed since the registered baseline | update refuses; `回到这个 commit` (restore) still works and snapshots the current bytes first |
+
+## Upgrade and uninstall
+
+Upgrade in place — the profile manifest and the stored snapshots both survive:
+
+```bash
+dsh plugin --profile <profile> add dsh-version-manager@<newer-version>
+```
+
+Reinstalling the **same** version is the one case pnpm short-circuits
+(`Already up to date`, files not replaced). Remove first, then add:
+
+```bash
+dsh plugin --profile <profile> remove dsh-version-manager
+dsh plugin --profile <profile> add dsh-version-manager@<version>
+```
+
+Uninstall removes the code, not your data:
+
+```bash
+dsh plugin --profile <profile> remove dsh-version-manager
+```
+
+Verified in an isolated profile: after a remove, `node_modules/dsh-version-manager` was
+gone and the `dependencies` / `dsh.profile.bundles` entries with it, while
+`<DSH_HOME>/version-manager/` still held every snapshot and operation record (19 files
+before and after). Reinstalling brought the panel back with the same 11 snapshots and 8
+operations. Delete `<DSH_HOME>/version-manager/` yourself to remove that history.
+
+Disabling without uninstalling uses the host's own patch file — add the row's `id` with
+`disabled: true` to `<DSH_HOME>/profiles/<profile>/cordis.patch.yml`, then restart:
+
+```yaml
+- id: version-manager
+  disabled: true
+```
+
+The panel disappears from the sidebar and nothing runs. There is no enable/disable
+subcommand in the DSH CLI (`dsh plugin` only forwards `add` / `remove`); the patch file is
+the supported way. Verified in an isolated profile, both directions.
 
 ## Compatibility
 
