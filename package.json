@@ -8,14 +8,16 @@
     ".": "./lib/index.js",
     "./client": "./lib/client.js",
     "./cordis.patch.yml": "./cordis.patch.yml",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./icon": "./assets/logo.webp"
   },
   "files": [
     "lib",
     "cordis.patch.yml",
     "docs/baseline.md",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "assets/logo.webp"
   ],
   "keywords": [
     "deepseek",
@@ -58,5 +60,6 @@
       "platform": "web",
       "immediately": true
     }
-  }
+  },
+  "icon": "./assets/logo.webp"
 }

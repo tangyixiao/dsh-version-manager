@@ -1,3 +1,5 @@
+<p><img src="assets/logo.webp" width="96" height="96" alt="dsh-version-manager logo"></p>
+
 # dsh-version-manager
 
 Version management for DSH plugins and Skills, inside DeepSeek Harness.
