@@ -4,7 +4,7 @@
 
 <p align="center">查看运行中 profile 的插件与 Skills，预览更新、保存可验证快照，并明确哪些状态能恢复。</p>
 
-<p align="center">[简体中文](README.zh-CN.md) · [English](README.md)</p>
+<p align="center"><a href="README.zh-CN.md">简体中文</a> · <a href="README.md">English</a></p>
 
 [![Stars](https://img.shields.io/github/stars/tangyixiao/dsh-version-manager?style=flat)](https://github.com/tangyixiao/dsh-version-manager/stargazers) [![CI](https://img.shields.io/github/actions/workflow/status/tangyixiao/dsh-version-manager/check.yml?branch=main)](https://github.com/tangyixiao/dsh-version-manager/actions/workflows/check.yml) [![License](https://img.shields.io/github/license/tangyixiao/dsh-version-manager)](LICENSE) [![npm](https://img.shields.io/npm/v/dsh-version-manager)](https://www.npmjs.com/package/dsh-version-manager)
 
