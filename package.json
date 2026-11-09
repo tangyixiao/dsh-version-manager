@@ -17,7 +17,9 @@
     "docs/baseline.md",
     "README.md",
     "LICENSE",
-    "assets/logo.webp"
+    "assets/logo.webp",
+    "assets/NOTICE.md",
+    "assets/LICENSE-WHALE-ARTWORK"
   ],
   "keywords": [
     "deepseek",
