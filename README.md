@@ -21,7 +21,7 @@ From a local tarball:
 
 ```bash
 npm pack
-dsh plugin --profile <your-profile> add /absolute/path/dsh-version-manager-0.1.0.tgz
+dsh plugin --profile <your-profile> add /absolute/path/dsh-version-manager-<version>.tgz
 ```
 
 Then restart the host and open the panel from the left sidebar.
