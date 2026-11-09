@@ -57,6 +57,8 @@ Three states are kept apart on purpose, because collapsing them produces false c
 
 **Check updates** asks the host for versions newer than the installed one. Stable and prerelease are separate lists; a prerelease requires an explicit opt-in, and a row shows whether the version is still a bundle, whether it is deprecated, and what its compatibility verdict is.
 
+The summary line above the table counts entries the host would let this plugin write (**writable** or 可写入), not entries that have a newer version. Those are different questions: only a per-target version check can answer the second one, and the panel does not pretend to know it in advance. A writable row with nothing newer available is the normal case, not a contradiction.
+
 **Update** always shows the from → to pair plus the four side effects before it runs:
 
 - a snapshot is written first and read back before anything else happens;
@@ -162,7 +164,7 @@ What was exercised, and what it produced:
 | Git-managed Skill: register, first apply, update A→B, restore A, hand-edit then restore | registered against an empty directory (`populated: false`), first update filled it, an update moved `8569b20 → c3d0909` with `M SKILL.md` / `A extra.md`, a restore put `8569b20` back and removed `extra.md`, a hand-edited file made the update refuse `local-modifications` while the restore still ran and left an undo snapshot holding the edited bytes |
 | the Desktop shell | sidebar entry, panel, both tabs, confirmation bar, operation list and snapshot list all rendered and worked; a snapshot taken by clicking in the UI landed on disk |
 
-Two defects found this way and fixed rather than documented away: a nested-but-successful host reply was being classified as a failure, and a bundled Skill could be offered a restore the plugin would refuse everywhere else. A third was cosmetic but worse than cosmetic — one local path was compared in two spellings and reported as a change that never happened. A fourth came out of the Git flow: the panel reported a freshly registered, still-empty directory as "modified, update will be refused" because the empty directory's digest never equals the commit's, while the update path allowed it — the row now reads the same refusal function the update path uses, so the two cannot drift apart again.
+Two defects found this way and fixed rather than documented away: a nested-but-successful host reply was being classified as a failure, and a bundled Skill could be offered a restore the plugin would refuse everywhere else. A third was cosmetic but worse than cosmetic — one local path was compared in two spellings and reported as a change that never happened. A fourth came out of the Git flow: the panel reported a freshly registered, still-empty directory as "modified, update will be refused" because the empty directory's digest never equals the commit's, while the update path allowed it — the row now reads the same refusal function the update path uses, so the two cannot drift apart again. A fifth was found by installing the published package: the panel said "2 updatable" for two rows that had no newer version at all, because the number was counting rows the host would accept a write for. The field and its labels now say **writable** — what is actually measured.
 
 Not verified: another DSH version, a Linux or macOS Desktop, and a non-bundled Skill provider.
 

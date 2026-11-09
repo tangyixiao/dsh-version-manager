@@ -124,7 +124,9 @@ test('buildPluginRows keeps the four facts apart and explains a missing phase', 
   assert.equal(third.enabledState, 'enabled')
   assert.equal(third.loadState, 'active')
   assert.equal(third.loadStateReason, null)
-  assert.equal(third.recoverability, 'updatable')
+  // Writable, not "updatable": this row says the host would accept a write,
+  // never that a newer version exists.
+  assert.equal(third.recoverability, 'writable')
   assert.equal(third.updateRefusal, null)
   // A row that has not had its manifest read is not a passing row.
   assert.equal(third.compatibility.verdict, 'unknown')
