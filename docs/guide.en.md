@@ -176,6 +176,23 @@ Two defects found this way and fixed rather than documented away: a nested-but-s
 
 Not verified: another DSH version, a Linux or macOS Desktop, and a non-bundled Skill provider.
 
+### Keyboard and accessibility
+
+Audited against the P4 checklist. Four defects were real, not hypothetical, and the fix lives entirely in `lib/client.js`:
+
+| defect | effect | fix |
+| --- | --- | --- |
+| the strip had `role="tablist"` and `role="tab"` but no keyboard behaviour | both tabs sat in the tab order and the arrow keys did nothing — a tablist is one stop, not two | roving `tabindex`, ArrowLeft/ArrowRight with wraparound, Home and End; focus follows the selection |
+| `aria-controls` pointed at an element that did not exist | there was no `role="tabpanel"` at all | one stable `#vm-panel` with `role="tabpanel"` whose `aria-labelledby` follows the selected tab, so every tab's `aria-controls` resolves |
+| every row rendered the same two button names | dozens of identically named buttons in the accessibility tree — "check versions" says nothing about *which* package | per-row accessible names, e.g. `check versions: @deepseek-ai/dsh-base` |
+| two different buttons were both "refresh" | the plugin list and the Skill catalog were indistinguishable | the Skill one is named in its `aria-label`; the visible word is unchanged |
+
+The row expander also stopped being announced as a triangle (`▸ dsh-update-checker`): it now reads `show details: <package>` / `hide details: <package>`, alongside the `aria-expanded` it already had.
+
+Measured on the real host in an isolated `DSH_HOME` (Desktop 0.2.2-rc.1) over CDP with real `Input.dispatchKeyEvent` events rather than synthetic `dispatchEvent` calls: one tablist stop instead of two; ArrowRight moves focus and `aria-selected` together and the panel label follows; ArrowRight again wraps; End and Home jump; Enter and Space open and close the expander with the name flipping; the focus ring is present (`outline: auto 2px`, `:focus-visible` matches) because nothing in the bundle removes it; and this plugin contributes no unnamed and no duplicate-named controls (the only repeated name on the page belongs to the host).
+
+Not claimed: no screen-reader session (NVDA or Narrator) was run — the statements above are about the accessibility tree and keyboard behaviour as measured through CDP, not about how a particular screen reader voices them. Windows only. Contrast was not measured; the panel adds no text colours of its own beyond the status dots and badges.
+
 ## Honest limits
 
 - **A snapshot is not a profile backup.** A version restore reinstalls one package. It does not revert `package.json` ranges, the lockfile, config overlays, or the dependency tree.
