@@ -1,6 +1,6 @@
 {
   "name": "dsh-version-manager",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Version management for DSH plugins and skills: an honest inventory of what is installed, a preview of what an update would change, a verifiable snapshot taken before the change, and a recovery path that is only offered when it can actually work.",
   "type": "module",
   "main": "lib/index.js",

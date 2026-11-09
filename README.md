@@ -147,13 +147,13 @@ Three kinds of evidence, kept apart on purpose.
 
 **CI.** `.github/workflows/check.yml` runs that suite on Ubuntu, Windows and macOS against Node 22 and 24 — six jobs, no install step, because the package has no dependencies. It also runs `npm pack --dry-run` so a broken `files` list fails the build.
 
-**A real host.** The flows below were run against DeepSeek Harness `0.2.2-rc.1` (Electron 44.7.0, Node 24.21.0) on Windows 11, installed from the packed tarball `dsh-version-manager-0.1.0.tgz` into a throwaway `DSH_HOME`. The point of a separate home is that a mistake here cannot touch the profile you work in.
+**A real host.** The flows below were run against DeepSeek Harness `0.2.2-rc.1` (Electron 44.7.0, Node 24.21.0) on Windows 11, installed from the packed tarball into a throwaway `DSH_HOME`. The point of a separate home is that a mistake here cannot touch the profile you work in.
 
 What was exercised, and what it produced:
 
 | step | observed |
 | --- | --- |
-| fresh profile created by `dsh plugin --profile final add <tarball>` | `dsh: initialized profile final`, `+ dsh-version-manager 0.1.0`, 26 rows rendered |
+| fresh profile created by `dsh plugin --profile final add <tarball>` | `dsh: initialized profile final`, the packaged version reported by the host, 26 rows rendered |
 | `GET /overview` | `profile=final`, `host=0.2.2-rc.1`, source `@deepseek-ai/dsh-app-boot/package.json` |
 | `POST /snapshot` without `confirm` | `400 {"error":"confirm required"}` |
 | `POST /snapshot` with `confirm` | `200`, snapshot written with `seq: 1` |
