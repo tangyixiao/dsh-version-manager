@@ -1,8 +1,10 @@
-<p align="center"><img src="assets/logo.webp" width="128" height="128" alt="DSH Version Manager logo"></p>
+<p align="center"><img src="assets/logo.webp" width="192" height="192" alt="DSH Version Manager logo"></p>
 
 <h1 align="center">DSH Version Manager</h1>
 
 <p align="center">查看运行中 profile 的插件与 Skills，预览更新、保存可验证快照，并明确哪些状态能恢复。</p>
+
+<p align="center"><a href="https://github.com/tangyixiao/dsh-version-manager"><img src="docs/assets/banner-zh-CN.svg" width="100%" alt="DSH Version Manager — 查看项目与使用说明"></a></p>
 
 <p align="center"><a href="README.zh-CN.md">简体中文</a> · <a href="README.md">English</a></p>
 

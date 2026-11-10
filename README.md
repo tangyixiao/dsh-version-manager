@@ -1,8 +1,10 @@
-<p align="center"><img src="assets/logo.webp" width="128" height="128" alt="DSH Version Manager logo"></p>
+<p align="center"><img src="assets/logo.webp" width="192" height="192" alt="DSH Version Manager logo"></p>
 
 <h1 align="center">DSH Version Manager</h1>
 
 <p align="center">Inspect plugins and Skills in the running profile, preview updates, record verifiable snapshots and show what can actually be restored.</p>
+
+<p align="center"><a href="https://github.com/tangyixiao/dsh-version-manager"><img src="docs/assets/banner-en.svg" width="100%" alt="DSH Version Manager — Project and usage guide"></a></p>
 
 <p align="center"><a href="README.zh-CN.md">简体中文</a> · <a href="README.md">English</a></p>
 
