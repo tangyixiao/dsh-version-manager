@@ -12,7 +12,7 @@ import {
   registerGitRoute,
   restoreGitRoute,
   unregisterGitRoute,
-  updateGitRoute,
+  updateGitRoute as updateGitRouteRaw,
 } from '../lib/host/git-routes.js'
 
 const run = promisify(execFile)
@@ -29,6 +29,16 @@ async function hasGit() {
 
 const GIT = await hasGit()
 const gitTest = GIT ? test : test.skip
+
+// The HTTP contract now requires the commit the caller actually previewed.
+async function updateGitRoute(profile, body) {
+  const preview = await previewGitRoute(profile, body)
+  return updateGitRouteRaw(profile, { ...body,
+    expectedRevision: preview.body.detail?.to?.revision ?? '0'.repeat(40),
+    expectedFromRevision: preview.body.detail?.from?.revision,
+    expectedDigest: preview.body.detail?.localFiles?.digest,
+  })
+}
 
 /**
  * A fake host whose catalog is whatever the test says it is.
