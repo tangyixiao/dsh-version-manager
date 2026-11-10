@@ -234,7 +234,7 @@ All under `/dsh-version-manager`, same-origin, `Cache-Control: no-store`.
 | POST | `/skills/git/register` | `{name, remote, subpath?, ref?, create?, confirm}` | record where a Skill comes from and the commit it currently matches |
 | POST | `/skills/git/remove` | `{name, confirm}` | forget the registration, leaving the directory alone |
 | POST | `/skills/git/preview` | `{name, ref?, confirm}` | fetch into the plugin's cache and report the diff and every refusal |
-| POST | `/skills/git/update` | `{name, ref?, confirm}` | snapshot, then write the tree of the fetched commit |
+| POST | `/skills/git/update` | `{name, ref?, expectedRevision, expectedFromRevision?, expectedDigest?, confirm}` | apply only the previewed commit; changed previews are refused |
 | POST | `/skills/git/restore` | `{name, revision, confirm}` | snapshot, then write the tree of a commit already in the cache |
 
 Error bodies carry a stable `error` code and, when useful, a `message`. The update and restore flows also return `operationId`, and the operation journal under `<DSH_HOME>/version-manager/operations/<profile>/` records each transition: `planned`, `snapshot_verified`, `applying`, `verifying`, then `succeeded`, `failed`, `cancelled` or `recovery_required`.

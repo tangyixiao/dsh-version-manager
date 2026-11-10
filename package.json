@@ -1,6 +1,6 @@
 {
   "name": "dsh-version-manager",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Version management for DSH plugins and skills: an honest inventory of what is installed, a preview of what an update would change, a verifiable snapshot taken before the change, and a recovery path that is only offered when it can actually work.",
   "type": "module",
   "main": "lib/index.js",
@@ -19,7 +19,12 @@
     "LICENSE",
     "assets/logo.webp",
     "assets/NOTICE.md",
-    "assets/LICENSE-WHALE-ARTWORK"
+    "assets/LICENSE-WHALE-ARTWORK",
+    "README.zh-CN.md",
+    "docs/assets",
+    "docs/git-write-safety.md",
+    "docs/guide.en.md",
+    "docs/release-notes-0.1.4.md"
   ],
   "keywords": [
     "deepseek",
