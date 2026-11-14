@@ -21,7 +21,7 @@
 Desktop: install the release `.tgz` through Extensions → Plugin Management → Add Plugin. For a Web profile you explicitly control:
 
 ```sh
-dsh plugin --profile web add dsh-version-manager@0.1.4
+dsh plugin --profile web add dsh-version-manager@0.1.5
 ```
 
 Install into an existing Desktop/Web profile and open Version manager. Review inventory and the exact from → to update first; a new empty profile also needs the Web app bundle.
@@ -30,7 +30,7 @@ Install into an existing Desktop/Web profile and open Version manager. Review in
 
 | Item | Current source of truth |
 | --- | --- |
-| Source version | `0.1.4` · 以 [package.json](package.json) 为准 |
+| Source version | `0.1.5` · 以 [package.json](package.json) 为准 |
 | Distribution | `npm` · [Releases](https://github.com/tangyixiao/dsh-version-manager/releases) |
 | DSH | `>=0.2.2-rc.1` |
 | Node.js | `>=22` |

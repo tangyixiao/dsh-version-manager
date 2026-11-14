@@ -1,5 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 
 import {
   dshRequirements,
@@ -8,6 +9,13 @@ import {
   parseVersion,
   satisfiesRange,
 } from '../lib/host/compat.js'
+
+test('the shipped plugin accepts rc.3 without a user compatibility exemption', () => {
+  const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+  const verdict = evaluateCompatibility({ manifest, runtimeVersion: '0.2.2-rc.3' })
+  assert.equal(verdict.verdict, 'satisfied')
+  assert.deepEqual(verdict.unmet, [])
+})
 
 test('parseVersion reads a release and a prerelease', () => {
   assert.deepEqual(parseVersion('1.2.3'), { major: 1, minor: 2, patch: 3, prerelease: [] })
