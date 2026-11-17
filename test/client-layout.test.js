@@ -14,23 +14,28 @@ const row = {
 
 // Exercise the public ModuleLoader + slots contract without adding a React
 // dependency. Browser geometry is checked separately with the actual renderer.
-function render(expanded = null, language = 'zh-CN') {
+function render(expanded = null, language = 'zh-CN', geometry = null) {
   const data = { profile: { id: 'desktop' }, host: {}, plugins: [row], counts: { total: 1, writable: 0, official: 0 }, observedAt: null }
   const states = [{ status: 'ready', data, error: null }, 'all', '', expanded, 'plugins', { status: 'idle', data: null, error: null }]
   let index = 0
   let Panel
+  const effects = []
   const React = {
     Fragment: 'fragment',
     createElement: (type, props, ...children) => ({ type, props: { ...props, children: children.flat() } }),
-    useState: initial => [index < states.length ? states[index++] : initial, () => {}],
+    useState: initial => {
+      const slot = index++
+      if (!(slot in states)) states[slot] = typeof initial === 'function' ? initial() : initial
+      return [states[slot], value => { states[slot] = typeof value === 'function' ? value(states[slot]) : value }]
+    },
     useMemo: fn => fn(),
     useCallback: fn => fn,
     useRef: initial => ({ current: initial }),
-    useEffect() {},
+    useEffect(effect) { effects.push(effect) },
   }
   vm.runInNewContext(readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8'), {
     console,
-    window: { navigator: { language }, __ModuleLoader__: { load({ factory }) {
+    window: { innerHeight: geometry?.screenHeight, getComputedStyle: node => ({ overflowY: node.overflowY }), addEventListener() {}, removeEventListener() {}, navigator: { language }, __ModuleLoader__: { load({ factory }) {
       factory(name => { assert.equal(name, 'react'); return React }).apply({
         get: () => null,
         slots: { inject: (_name, fn) => fn(), register: (slot, Component) => { if (slot.name === 'main') Panel = Component } },
@@ -42,7 +47,14 @@ function render(expanded = null, language = 'zh-CN') {
     if (typeof node.type === 'function') return resolve(node.type(node.props))
     return { ...node, props: { ...node.props, children: node.props.children.map(resolve).filter(x => x !== null && x !== undefined) } }
   }
-  return resolve(Panel())
+  let panel = Panel()
+  if (geometry) {
+    panel.props.ref.current = { getBoundingClientRect: () => ({ top: geometry.top }), parentElement: geometry.parent }
+    effects[0]()
+    index = 0
+    panel = Panel()
+  }
+  return resolve(panel)
 }
 function find(node, predicate) {
   if (node === null || typeof node !== 'object') return []
@@ -81,6 +93,19 @@ test('the panel owns a full-height vertical scroll region even inside a clipped 
   assert.equal(panel.props.style.overflowY, 'scroll')
   assert.equal(panel.props.style.scrollbarGutter, 'stable')
   assert.ok(text(panel).includes('检查全部更新'))
+})
+
+test('scroll height uses the clipped host bounds instead of an unresolved percentage', () => {
+  const clipped = { overflowY: 'hidden', getBoundingClientRect: () => ({ height: 500, bottom: 520 }), parentElement: null }
+  const anchor = { overflowY: 'visible', getBoundingClientRect: () => ({ height: 0, bottom: 0 }), parentElement: clipped }
+  const panel = render(null, 'zh-CN', { top: 40, screenHeight: 900, parent: anchor })
+  assert.equal(panel.props.style.height, 480)
+  assert.equal(panel.props.style.flex, '0 0 auto')
+})
+
+test('an unbounded host cannot stretch the scroll region beyond the viewport', () => {
+  const panel = render(null, 'zh-CN', { top: 64, screenHeight: 768, parent: null })
+  assert.equal(panel.props.style.height, 704)
 })
 
 test('expanding an abbreviated row exposes complete selectable name, version and source', () => {
