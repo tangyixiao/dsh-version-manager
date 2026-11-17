@@ -115,6 +115,37 @@ test('host authentication rejects unauthenticated local requests on every route'
   assert.deepEqual(touched, [])
 })
 
+test('every route refuses rejected asynchronous host verdicts without an unhandled rejection', async () => {
+  const connection = {
+    requestRejection() { return Promise.reject(new Error('asynchronous host fence is unavailable')) },
+    admit() { assert.fail('owner admission must not run after an asynchronous host verdict') },
+  }
+  const { routes, touched } = fixture(connection)
+  for (const path of paths) {
+    const req = request(path)
+    const res = response()
+    await routes.get(path)(req, res)
+    assert.equal(res.status, 401, path)
+    assert.equal(req.bodyReads, 0, path)
+  }
+  // Let the event loop report any unhandled rejection to the test runner.
+  await new Promise((resolve) => setImmediate(resolve))
+  assert.deepEqual(touched, [])
+})
+
+test('every route fails closed if reading the connection service throws', async () => {
+  const setup = fixture(ownerConnection())
+  setup.ctx.get = () => { throw new Error('connection service unavailable') }
+  for (const path of paths) {
+    const req = request(path)
+    const res = response()
+    await setup.routes.get(path)(req, res)
+    assert.equal(res.status, 401, path)
+    assert.equal(req.bodyReads, 0, path)
+  }
+  assert.deepEqual(setup.touched, [])
+})
+
 test('authenticated local owner can read versions, and owner authorization remains required', async () => {
   const connection = ownerConnection()
   const { routes } = fixture(connection)
