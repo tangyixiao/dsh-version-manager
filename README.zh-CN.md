@@ -42,6 +42,8 @@ dsh plugin --profile web add dsh-version-manager@0.1.7
 
 [Detailed guide](docs/guide.en.md)
 
+HTTP 路由先调用宿主同步的 `connection.requestRejection(request)` 检查，再验证 owner 权限、读取请求体和访问 profile 服务。宿主检查缺失、抛错或返回异步结果时拒绝访问。参见 [0.1.7 发行说明](docs/release-notes-0.1.7.md)与[更新记录](CHANGELOG.md)。
+
 ## 开发与参与
 
 ```sh

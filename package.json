@@ -24,7 +24,9 @@
     "docs/assets",
     "docs/git-write-safety.md",
     "docs/guide.en.md",
-    "docs/release-notes-0.1.7.md"
+    "docs/release-notes-0.1.6.md",
+    "docs/release-notes-0.1.7.md",
+    "CHANGELOG.md"
   ],
   "keywords": [
     "deepseek",

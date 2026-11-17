@@ -32,7 +32,7 @@ The panel scrolls vertically and supports horizontal scrolling on narrow screens
 
 | Item | Current source of truth |
 | --- | --- |
-| Source version | `0.1.7` · 以 [package.json](package.json) 为准 |
+| Source version | `0.1.7` · see [package.json](package.json) |
 | Distribution | `npm` · [Releases](https://github.com/tangyixiao/dsh-version-manager/releases) |
 | DSH | `>=0.2.2-rc.1` |
 | Node.js | `>=22` |
@@ -41,6 +41,8 @@ The panel scrolls vertically and supports horizontal scrolling on narrow screens
 Restore is not a full backup: restoring a plugin version does not roll back configuration, the dependency tree or agent presets. Git, tarball and local sources require replay evidence.
 
 [Detailed usage, configuration and troubleshooting](docs/guide.en.md)
+
+HTTP routes require the host's synchronous `connection.requestRejection(request)` check before owner authorization, request bodies or profile services. Missing, throwing or asynchronous checks refuse access. See the [0.1.7 release notes](docs/release-notes-0.1.7.md) and [changelog](CHANGELOG.md).
 
 ## Development and participation
 
