@@ -18,13 +18,15 @@
 
 ## 开始使用
 
-Desktop：从发行页下载 `.tgz`，在“扩展 → 插件管理 → 添加插件”中安装。命令行示例用于你明确控制的 Web profile：
+Desktop：在“扩展 → 插件管理 → 添加插件”中输入 `dsh-version-manager`，优先使用 npm 来源，以便后续在线更新。发行页 `.tgz` 用于离线安装；宿主把本地安装包视为不可在线更新来源。命令行示例用于你明确控制的 Web profile：
 
 ```sh
 dsh plugin --profile web add dsh-version-manager@0.1.6
 ```
 
 在原有 Desktop/Web profile 中安装并打开“版本管理”。先查看清单与更新预览，再确认具体 from → to；新建空 profile 还需要 Web 应用 bundle。
+
+面板支持上下滚动与窄屏横向滚动。“检查全部更新”检查当前 profile 中可写入的 npm 插件，展示版本变化后可“一键更新”；更新逐项执行，每项先拍快照，失败即停。预发布、不兼容、已废弃、非 bundle 版本和本地/Git 来源不会进入批量更新。单项“检查更新”会自动展开结果；本地包的“详情”说明来源限制。
 
 ## 当前状态与兼容性
 

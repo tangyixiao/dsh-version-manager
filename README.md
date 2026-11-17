@@ -18,13 +18,15 @@
 
 ## Get started
 
-Desktop: install the release `.tgz` through Extensions → Plugin Management → Add Plugin. For a Web profile you explicitly control:
+Desktop: enter `dsh-version-manager` in Extensions → Plugin Management → Add Plugin. Prefer the npm source to enable future online updates. Release `.tgz` files are for offline installation; the host cannot update local archives online. For a Web profile you explicitly control:
 
 ```sh
 dsh plugin --profile web add dsh-version-manager@0.1.6
 ```
 
 Install into an existing Desktop/Web profile and open Version manager. Review inventory and the exact from → to update first; a new empty profile also needs the Web app bundle.
+
+The panel scrolls vertically and supports horizontal scrolling on narrow screens. “Check all updates” inspects writable npm plugins in the current profile, then “Update all” previews the version changes and asks for confirmation. Updates run sequentially, snapshot each target first, and stop on failure. Prerelease, incompatible, deprecated, non-bundle and local/Git sources are excluded. Single version checks expand their results automatically; local archive details explain the source restriction.
 
 ## Status and compatibility
 

@@ -54,7 +54,7 @@ function text(node) {
 
 test('long package paths cannot redistribute the version and action columns', () => {
   const panel = render()
-  const region = find(panel, node => node.props.role === 'region')[0]
+  const region = find(panel, node => node.props.role === 'region' && node.props.style.overflowX === 'auto')[0]
   assert.ok(region, 'table scrolls inside a labelled keyboard accessible region')
   assert.equal(region.props.tabIndex, 0)
   assert.equal(region.props.style.overflowX, 'auto')
@@ -71,6 +71,16 @@ test('long package paths cannot redistribute the version and action columns', ()
     assert.equal(cellText.props.style.textOverflow, 'ellipsis')
     assert.equal(text(cellText), value, 'full value remains available')
   }
+})
+
+test('the panel owns a full-height vertical scroll region even inside a clipped host slot', () => {
+  const panel = render()
+  assert.equal(panel.props.role, 'region')
+  assert.equal(panel.props.tabIndex, 0)
+  assert.equal(panel.props.style.height, '100%')
+  assert.equal(panel.props.style.overflowY, 'scroll')
+  assert.equal(panel.props.style.scrollbarGutter, 'stable')
+  assert.ok(text(panel).includes('检查全部更新'))
 })
 
 test('expanding an abbreviated row exposes complete selectable name, version and source', () => {
