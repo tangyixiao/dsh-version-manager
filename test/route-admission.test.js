@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { apply } from '../lib/index.js'
-import { registerRoutes, ROUTE_BASE } from '../lib/host/routes.js'
+import { admit, registerRoutes, ROUTE_BASE } from '../lib/host/routes.js'
 
 const reads = ['/overview', '/versions', '/skills', '/skills/restore-preview', '/skills/git']
 const writes = [
@@ -68,6 +68,44 @@ function ownerConnection() {
     admit() { this.admissionCalls++; return { peer: { principal: { kind: 'owner' } } } },
   }
 }
+
+const invalidOwnerAdmissions = [
+  () => Promise.reject(new Error('asynchronous owner admission unavailable')),
+  () => Promise.resolve({ peer: { principal: { kind: 'owner' } } }),
+  () => ({ then(_resolve, reject) { reject(new Error('owner thenable rejected')) } }),
+  () => ({ get then() { throw new Error('unreadable then') } }),
+  () => ({ get rejection() { throw new Error('unreadable rejection') } }),
+  () => ({ get peer() { throw new Error('unreadable peer') } }),
+  () => ({ peer: { get principal() { throw new Error('unreadable principal') } } }),
+  () => ({ peer: { principal: { get kind() { throw new Error('unreadable kind') } } } }),
+  () => new Proxy({}, { has() { throw new Error('unreadable admission shape') } }),
+  () => ({ rejection: 200 }),
+]
+
+test('owner admission helper fails closed for asynchronous and unreadable host results', async () => {
+  for (const result of invalidOwnerAdmissions) {
+    assert.deepEqual(admit({ get: () => ({ admit: result }) }, {}), { ok: false, status: 401 })
+  }
+  assert.deepEqual(admit({ get() { throw new Error('unavailable service') } }, {}), { ok: false, status: 401 })
+  assert.deepEqual(admit({ get: () => ({ get admit() { throw new Error('unavailable method') } }) }, {}), { ok: false, status: 401 })
+  await new Promise((resolve) => setImmediate(resolve))
+})
+
+test('every registered route refuses malformed owner admission before body reads or services', async () => {
+  for (const result of invalidOwnerAdmissions) {
+    const connection = { requestRejection: () => undefined, admit: result }
+    const { routes, touched } = fixture(connection)
+    for (const path of paths) {
+      const req = request(path)
+      const res = response()
+      await routes.get(path)(req, res)
+      assert.equal(res.status, 401, path)
+      assert.equal(req.bodyReads, 0, path)
+    }
+    assert.deepEqual(touched, [])
+    await new Promise((resolve) => setImmediate(resolve))
+  }
+})
 
 test('every route rejects hostile Host, Origin and cross-site requests before owner admission, body reads or service access', async () => {
   for (const headers of [{ host: 'attacker.invalid:8765' }, { origin: 'https://attacker.invalid' }, { 'sec-fetch-site': 'cross-site' }]) {
