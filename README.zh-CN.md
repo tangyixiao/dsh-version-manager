@@ -21,18 +21,18 @@
 Desktop：在“扩展 → 插件管理 → 添加插件”中输入 `dsh-version-manager`，优先使用 npm 来源，以便后续在线更新。发行页 `.tgz` 用于离线安装；宿主把本地安装包视为不可在线更新来源。命令行示例用于你明确控制的 Web profile：
 
 ```sh
-dsh plugin --profile web add dsh-version-manager@0.1.6
+dsh plugin --profile web add dsh-version-manager@0.1.7
 ```
 
 在原有 Desktop/Web profile 中安装并打开“版本管理”。先查看清单与更新预览，再确认具体 from → to；新建空 profile 还需要 Web 应用 bundle。
 
-面板支持上下滚动与窄屏横向滚动。“检查全部更新”检查当前 profile 中可写入的 npm 插件，展示版本变化后可“一键更新”；更新逐项执行，每项先拍快照，失败即停。预发布、不兼容、已废弃、非 bundle 版本和本地/Git 来源不会进入批量更新。单项“检查更新”会自动展开结果；本地包的“详情”说明来源限制。
+面板支持上下滚动与窄屏横向滚动。“检查全部更新”默认检查当前 profile 中可写入的 npm 插件，展示版本变化后可“一键更新”；更新逐项执行，每项先拍快照，失败即停。勾选“包含本地安装包（切换到 npm 来源）”后，可将本地 `.tgz` 安装迁移到同名 npm 正式版；确认前展示来源变化，失败时尝试恢复原安装包，保留停用状态。原包不存在、身份不符、版本过旧或兼容性未确认时拒绝迁移。预发布、已废弃、非 bundle、Git、目录、别名及官方内置来源不自动更新。单项检查会自动展开结果。
 
 ## 当前状态与兼容性
 
 | 项目 | 当前依据 |
 | --- | --- |
-| 源码版本 | `0.1.6` · 以 [package.json](package.json) 为准 |
+| 源码版本 | `0.1.7` · 以 [package.json](package.json) 为准 |
 | 分发方式 | `npm` · [Releases](https://github.com/tangyixiao/dsh-version-manager/releases) |
 | DSH | `>=0.2.2-rc.1` |
 | Node.js | `>=22` |

@@ -48,6 +48,7 @@ function harness(fetch, rows = [row], onRefresh = async () => {}) {
     render,
     row(onExpand) { component = { ...entry, props: { ...entry.props, onExpand } }; cells = []; refs = [] },
     state: () => cells[0],
+    includeLocal: () => find(render(true), node => node.type === 'input' && node.props.type === 'checkbox')[0].props.onChange({ target: { checked: true } }),
     click: async label => {
       const button = find(render(true), node => node.type === 'button' && text(node) === label)[0]
       assert.ok(button, `button exists: ${label}`)
@@ -116,4 +117,23 @@ test('the host incompatibility field survives version normalization', async () =
     listVersions: async () => ({ versions: [{ version: '1.1.0', bundle: true, incompatible }] }),
   } } }, 'demo')
   assert.deepEqual(data.stable[0].incompatible, incompatible)
+})
+
+test('local archive batching needs opt-in and sends the exact previewed source and archive digest', async () => {
+  const writes = []
+  const sourceMigration = { from: 'file:/demo.tgz', to: 'demo@1.0.0', archiveDigest: 'a'.repeat(64) }
+  const ui = harness(async (path, options) => {
+    if (options?.method === 'POST') { writes.push(JSON.parse(options.body)); return response({ ok: true }) }
+    assert.match(path, /migrateToRegistry=true/)
+    return response({ status: 'ok', stable: [{ ...candidate, version: '1.0.0' }], sourceMigration })
+  }, [{ ...row, declaredSpec: sourceMigration.from, source: { kind: 'tarball' }, updateRefusal: 'not-registry:tarball' }])
+  ui.includeLocal()
+  await ui.click('检查全部更新')
+  assert.equal(ui.state().items.length, 1)
+  await ui.click('一键更新 (1)')
+  assert.equal(writes.length, 0)
+  await ui.click('确认更新')
+  assert.equal(writes[0].migrateToRegistry, true)
+  assert.equal(writes[0].expectedSource, sourceMigration.from)
+  assert.equal(writes[0].archiveDigest, sourceMigration.archiveDigest)
 })

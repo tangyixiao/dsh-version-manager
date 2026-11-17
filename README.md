@@ -21,18 +21,18 @@
 Desktop: enter `dsh-version-manager` in Extensions → Plugin Management → Add Plugin. Prefer the npm source to enable future online updates. Release `.tgz` files are for offline installation; the host cannot update local archives online. For a Web profile you explicitly control:
 
 ```sh
-dsh plugin --profile web add dsh-version-manager@0.1.6
+dsh plugin --profile web add dsh-version-manager@0.1.7
 ```
 
 Install into an existing Desktop/Web profile and open Version manager. Review inventory and the exact from → to update first; a new empty profile also needs the Web app bundle.
 
-The panel scrolls vertically and supports horizontal scrolling on narrow screens. “Check all updates” inspects writable npm plugins in the current profile, then “Update all” previews the version changes and asks for confirmation. Updates run sequentially, snapshot each target first, and stop on failure. Prerelease, incompatible, deprecated, non-bundle and local/Git sources are excluded. Single version checks expand their results automatically; local archive details explain the source restriction.
+The panel scrolls vertically and supports horizontal scrolling on narrow screens. “Check all updates” defaults to writable npm plugins; “Update all” previews exact changes and asks for confirmation. Updates run sequentially, snapshot each target first, and stop on failure. Opt into “Include local archives (change source to npm)” to migrate local `.tgz` installs to the same named stable npm bundle, showing the source change before confirmation. Failed installs attempt rollback to the retained original archive and preserve disabled state. Missing archives, identity mismatch, downgrades and unconfirmed compatibility refuse migration. Prerelease, deprecated, non-bundle, Git, directory, alias and official sources are not automatically updated. Single checks expand their results automatically.
 
 ## Status and compatibility
 
 | Item | Current source of truth |
 | --- | --- |
-| Source version | `0.1.6` · 以 [package.json](package.json) 为准 |
+| Source version | `0.1.7` · 以 [package.json](package.json) 为准 |
 | Distribution | `npm` · [Releases](https://github.com/tangyixiao/dsh-version-manager/releases) |
 | DSH | `>=0.2.2-rc.1` |
 | Node.js | `>=22` |
