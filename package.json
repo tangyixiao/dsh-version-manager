@@ -1,6 +1,6 @@
 {
   "name": "dsh-version-manager",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Version management for DSH plugins and skills: an honest inventory of what is installed, a preview of what an update would change, a verifiable snapshot taken before the change, and a recovery path that is only offered when it can actually work.",
   "type": "module",
   "main": "lib/index.js",
@@ -26,7 +26,8 @@
     "docs/guide.en.md",
     "docs/release-notes-0.1.6.md",
     "docs/release-notes-0.1.7.md",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "docs/release-notes-0.1.8.md"
   ],
   "keywords": [
     "deepseek",
