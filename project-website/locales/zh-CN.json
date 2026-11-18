@@ -1,0 +1,136 @@
+{
+  "meta": {
+    "description": "在正在运行的 DSH profile 中查看插件与技能，比较已装版本和候选版本，更新前留下可核对的快照。"
+  },
+  "pages": {
+    "home": {
+      "title": "更新前看清版本，恢复时知道边界 · {project}"
+    },
+    "features": {
+      "title": "项目特点 · {project}",
+      "description": "在正在运行的 DSH profile 中查看插件与技能，比较已装版本和候选版本，更新前留下可核对的快照。"
+    },
+    "download": {
+      "title": "开始使用 · {project}",
+      "description": "在现有 DSH Desktop profile 的插件管理中添加 dsh-version-manager，以便继续使用在线更新。"
+    },
+    "community": {
+      "title": "参与项目 · {project}",
+      "description": "从这里找到使用说明、已有讨论和项目变更。"
+    }
+  },
+  "nav": {
+    "home": "首页",
+    "features": "项目特点",
+    "download": "开始使用",
+    "community": "参与项目"
+  },
+  "ui": {
+    "skip_link": "跳转到主要内容",
+    "navigation": "主导航",
+    "open_navigation": "打开导航",
+    "close_navigation": "关闭导航",
+    "language": "选择语言",
+    "theme": "选择主题",
+    "light": "浅色",
+    "dark": "深色",
+    "system": "跟随系统",
+    "platforms": "支持的平台",
+    "github": "GitHub",
+    "view_image": "查看完整演示图",
+    "feature_more": "查看详情",
+    "download": "查看更新与恢复指南",
+    "release_notes": "仓库源代码",
+    "documentation": "使用文档",
+    "source": "仓库源代码",
+    "illustration": "使用路径",
+    "license": "MIT"
+  },
+  "hero": {
+    "title": [
+      "更新前看清版本，恢复时知道边界"
+    ],
+    "description": [
+      "在正在运行的 DSH profile 中查看插件与技能，比较已装版本和候选版本，更新前留下可核对的快照。"
+    ],
+    "primary_action": "查看更新与恢复指南",
+    "secondary_action": "查看详情"
+  },
+  "preview": {
+    "caption": "使用路径",
+    "tabs": [
+      {
+        "label": "开始使用",
+        "icon": "book"
+      }
+    ],
+    "items": [
+      {
+        "title": "按包名安装",
+        "description": "在现有 DSH Desktop profile 的插件管理中添加 dsh-version-manager，以便继续使用在线更新。",
+        "icon": "book"
+      },
+      {
+        "title": "预览一次更新",
+        "description": "打开 Version manager，检查清单并查看候选版本，核对拟修改的项目后再确认。",
+        "icon": "link"
+      }
+    ]
+  },
+  "features": {
+    "title": "项目特点",
+    "groups": [
+      {
+        "title": "核对实际安装",
+        "description": "并列查看声明、磁盘版本与加载状态，更新预览给出准确的起始版本和目标版本。",
+        "detail": "",
+        "icon": "layers"
+      },
+      {
+        "title": "逐项更新与恢复",
+        "description": "批量更新按顺序为每项保存快照，遇到失败即停。恢复插件版本时仍需分开考虑配置与依赖。",
+        "detail": "",
+        "icon": "book"
+      }
+    ]
+  },
+  "getting_started": {
+    "title": "开始使用 · {project}",
+    "steps": [
+      {
+        "title": "按包名安装",
+        "description": "在现有 DSH Desktop profile 的插件管理中添加 dsh-version-manager，以便继续使用在线更新。",
+        "icon": "book"
+      },
+      {
+        "title": "预览一次更新",
+        "description": "打开 Version manager，检查清单并查看候选版本，核对拟修改的项目后再确认。",
+        "icon": "link"
+      }
+    ]
+  },
+  "community": {
+    "title": "参与 · {project}",
+    "description": "从这里找到使用说明、已有讨论和项目变更。",
+    "links": [
+      {
+        "label": "帮助与反馈",
+        "description": "查看已报告的问题，或描述复现步骤。",
+        "icon": "book"
+      },
+      {
+        "label": "参与讨论",
+        "description": "查看已有话题，分享使用方法或改进建议。",
+        "icon": "link"
+      },
+      {
+        "label": "查看项目变更",
+        "description": "查看已有拉取请求或准备贡献。",
+        "icon": "code"
+      }
+    ]
+  },
+  "footer": {
+    "copyright": "{copyright}"
+  }
+}
