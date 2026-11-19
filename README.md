@@ -21,7 +21,7 @@
 Desktop: enter `dsh-version-manager` in Extensions → Plugin Management → Add Plugin. Prefer the npm source to enable future online updates. Release `.tgz` files are for offline installation; the host cannot update local archives online. For a Web profile you explicitly control:
 
 ```sh
-dsh plugin --profile web add dsh-version-manager@0.1.8
+dsh plugin --profile web add dsh-version-manager@0.1.9
 ```
 
 Install into an existing Desktop/Web profile and open Version manager. Review inventory and the exact from → to update first; a new empty profile also needs the Web app bundle.
@@ -32,7 +32,7 @@ The panel scrolls vertically and supports horizontal scrolling on narrow screens
 
 | Item | Current source of truth |
 | --- | --- |
-| Source version | `0.1.8` · see [package.json](package.json) |
+| Source version | `0.1.9` · see [package.json](package.json) |
 | Distribution | `npm` · [Releases](https://github.com/tangyixiao/dsh-version-manager/releases) |
 | DSH | `>=0.2.2-rc.1` |
 | Node.js | `>=22` |
