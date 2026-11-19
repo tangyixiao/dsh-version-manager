@@ -21,7 +21,7 @@
 Desktop：在“扩展 → 插件管理 → 添加插件”中输入 `dsh-version-manager`，优先使用 npm 来源，以便后续在线更新。发行页 `.tgz` 用于离线安装；宿主把本地安装包视为不可在线更新来源。命令行示例用于你明确控制的 Web profile：
 
 ```sh
-dsh plugin --profile web add dsh-version-manager@0.1.8
+dsh plugin --profile web add dsh-version-manager@0.1.9
 ```
 
 在原有 Desktop/Web profile 中安装并打开“版本管理”。先查看清单与更新预览，再确认具体 from → to；新建空 profile 还需要 Web 应用 bundle。
@@ -32,7 +32,7 @@ dsh plugin --profile web add dsh-version-manager@0.1.8
 
 | 项目 | 当前依据 |
 | --- | --- |
-| 源码版本 | `0.1.8` · 以 [package.json](package.json) 为准 |
+| 源码版本 | `0.1.9` · 以 [package.json](package.json) 为准 |
 | 分发方式 | `npm` · [Releases](https://github.com/tangyixiao/dsh-version-manager/releases) |
 | DSH | `>=0.2.2-rc.1` |
 | Node.js | `>=22` |

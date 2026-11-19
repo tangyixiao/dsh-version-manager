@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.9
+
+- Qualify the version-management routes and package on DSH 0.2.2-rc.5.
+
 ## 0.1.8
 
 - Fix bounded vertical scrolling and automatically expand version checks.
