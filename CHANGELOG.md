@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.10
+
+- Preserve batch update check progress and results while switching between Plugins and Skills in the same panel.
+
 ## 0.1.9
 
 - Qualify the version-management routes and package on DSH 0.2.2-rc.5.
