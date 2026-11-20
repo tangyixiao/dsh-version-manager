@@ -16,8 +16,9 @@ function harness(fetch, rows = [row], onRefresh = async () => {}) {
     Fragment: 'fragment', createElement: (type, props, ...children) => ({ type, props: { ...props, children: children.flat() } }),
     useState(initial) {
       const index = cursor++
-      if (!(index in cells)) cells[index] = typeof initial === 'function' ? initial() : initial
-      return [cells[index], value => { cells[index] = typeof value === 'function' ? value(cells[index]) : value }]
+      const state = cells
+      if (!(index in state)) state[index] = typeof initial === 'function' ? initial() : initial
+      return [state[index], value => { state[index] = typeof value === 'function' ? value(state[index]) : value }]
     },
     useRef(initial) { const index = refCursor++; return refs[index] ??= { current: initial } },
     useEffect() {}, useMemo: fn => fn(), useCallback: fn => fn,
@@ -27,8 +28,17 @@ function harness(fetch, rows = [row], onRefresh = async () => {}) {
       factory(() => React).apply({ get: () => null, slots: { inject: (_slot, fn) => fn(), register: (slot, component) => { if (slot.name === 'main') Panel = component } } })
     } } },
   })
-  cells = [{ status: 'ready', data: { profile: {}, host: {}, plugins: rows, counts: {} }, error: null }]
-  const panel = Panel()
+  const panelCells = [{ status: 'ready', data: { profile: {}, host: {}, plugins: rows, counts: {} }, error: null }]
+  const panelRefs = []
+  function renderPanel() {
+    const childCells = cells
+    const childRefs = refs
+    cells = panelCells; refs = panelRefs; cursor = 0; refCursor = 0
+    const tree = Panel()
+    cells = childCells; refs = childRefs
+    return tree
+  }
+  const panel = renderPanel()
   const batch = find(panel, node => node.type?.name === 'BatchUpdates')[0]
   batch.props.onRefresh = onRefresh
   const entry = find(panel, node => node.type?.name === 'Row')[0]
@@ -46,6 +56,15 @@ function harness(fetch, rows = [row], onRefresh = async () => {}) {
   }
   return {
     render,
+    switchTab(key) {
+      const tabPanel = tree => find(tree, node => node.props.role === 'tabpanel')[0]
+      const previous = renderPanel()
+      const slot = tabPanel(previous).props.children.findIndex(node => node?.type === batch.type)
+      find(previous, node => node.props.id === `vm-tab-${key}`)[0].props.onClick()
+      const next = tabPanel(renderPanel()).props.children[slot]
+      assert.equal(next?.type, batch.type, 'batch controls keep their component position across tabs')
+      component = { ...next, props: { ...next.props, onRefresh } }
+    },
     row(onExpand) { component = { ...entry, props: { ...entry.props, onExpand } }; cells = []; refs = [] },
     state: () => cells[0],
     includeLocal: () => find(render(true), node => node.type === 'input' && node.props.type === 'checkbox')[0].props.onChange({ target: { checked: true } }),
@@ -62,6 +81,39 @@ function find(node, predicate) {
 }
 function text(node) { return node && typeof node === 'object' ? (node.props?.children ?? []).map(text).join('') : String(node ?? '') }
 function response(value) { return { ok: true, json: async () => value } }
+
+test('switching between plugins and skills preserves batch progress and results', async () => {
+  const first = Promise.withResolvers()
+  const second = Promise.withResolvers()
+  const secondStarted = Promise.withResolvers()
+  const calls = []
+  const ui = harness(path => {
+    calls.push(path)
+    if (path.endsWith('target=demo')) return first.promise
+    secondStarted.resolve()
+    return second.promise
+  }, [row, { ...row, targetId: 'two' }])
+
+  const checking = ui.click('检查全部更新')
+  assert.match(text(ui.render(true)), /正在检查 0\/2/)
+  ui.switchTab('skills')
+  assert.equal(ui.render(true), null)
+  first.resolve(response({ status: 'ok', stable: [candidate] }))
+  await secondStarted.promise
+  ui.switchTab('plugins')
+  const progress = find(ui.render(true), node => node.type === 'button' && text(node) === '正在检查 1/2')[0]
+  assert.equal(progress?.props.disabled, true)
+
+  ui.switchTab('skills')
+  second.resolve(response({ status: 'ok', stable: [candidate] }))
+  await checking
+  ui.switchTab('plugins')
+  const result = text(ui.render(true))
+  assert.match(result, /一键更新 \(2\)/)
+  assert.match(result, /demo: 1\.0\.0 → 1\.1\.0/)
+  assert.match(result, /two: 1\.0\.0 → 1\.1\.0/)
+  assert.deepEqual(calls.map(path => path.split('?')[1]), ['target=demo', 'target=two'])
+})
 
 test('batch checks skip local archives and filter prerelease, deprecation, non-bundles and host incompatibility', async () => {
   const calls = []
